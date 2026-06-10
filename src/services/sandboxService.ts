@@ -1,10 +1,19 @@
+/// <reference types="vite/client" />
+
 import { Client, Campaign, CampaignEvent, Participant, CampaignResponse, Coupon } from '../types';
 
 export function isSandboxActive(): boolean {
+  if (!import.meta.env.DEV) {
+    return false; // Force false in production
+  }
   return localStorage.getItem('predictive_sandbox_active') === 'true';
 }
 
 export function setSandboxActive(active: boolean) {
+  if (!import.meta.env.DEV) {
+    console.warn('Sandbox mode is disabled in production.');
+    return; // Do nothing in production
+  }
   localStorage.setItem('predictive_sandbox_active', active ? 'true' : 'false');
 }
 
@@ -267,5 +276,3 @@ export function updateSandboxCoupon(campaignId: string, id: string, updates: Par
   const updated = all.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c);
   writeStored('predictive_sandbox_coupons', updated);
 }
-
-

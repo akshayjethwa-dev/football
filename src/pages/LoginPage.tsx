@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+/// <reference types="vite/client" />
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { registerWithEmail } from '../services/authService';
 import { Shield, Key, Mail, Landmark, Users } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login, loginWithGoogle, loginSandbox } = useAuth();
+  const { user, profile, login, loginWithGoogle, loginSandbox } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState<React.ReactNode | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // AUTOMATED REDIRECT: Send the user to the workspace when authentication succeeds
+  useEffect(() => {
+    if (user && profile) {
+      navigate('/admin/clients', { replace: true });
+    }
+  }, [user, profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,15 +31,10 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
-        // Register client admin or superadmin
-        // Note: Special case, if email matches designated superadmin, register as superadmin
-        const isSuperAdminEmail = 
-          email === 'ironpoolj@gmail.com' || 
-          email === 'superadmin@ashreysystems.com';
+        const isSuperAdminEmail = email === 'superadmin@ashreysystems.com';
         
         await registerWithEmail(email, password, isSuperAdminEmail ? 'superadmin' : 'clientadmin', null);
         setSuccessMsg("Account created successfully! Logging you in...");
-        // Auto login
         await login(email, password);
       } else {
         await login(email, password);
@@ -109,9 +115,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-125 h-125 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-125 h-125 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center items-center gap-3">
@@ -229,57 +234,63 @@ export default function LoginPage() {
               <span>Instant Login with Google</span>
             </button>
 
-            <button
-              type="button"
-              onClick={async () => {
-                setError(null);
-                try {
-                  await loginSandbox();
-                } catch (err: any) {
-                  setError(err.message || "Failed to start Offline Sandbox mode.");
-                }
-              }}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl bg-emerald-500/10 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/20 transition shadow-md active:scale-98 cursor-pointer"
-            >
-              <svg className="h-4.5 w-4.5 mr-0.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <span>Instant Local Sandbox Mode (Zero Setup)</span>
-            </button>
-          </div>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-slate-900 px-2 text-slate-500 font-medium">
-                  Quick Access
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-2">
+            {/* SECURED: Only show Sandbox button during local development */}
+            {import.meta.env.DEV && (
               <button
                 type="button"
-                onClick={handleQuickDemoSetup}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl bg-slate-950/40 text-xs font-medium text-slate-400 hover:text-emerald-400 transition"
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await loginSandbox();
+                  } catch (err: any) {
+                    setError(err.message || "Failed to start Offline Sandbox mode.");
+                  }
+                }}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl bg-emerald-500/10 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/20 transition shadow-md active:scale-98 cursor-pointer"
               >
-                <Shield className="h-4 w-4" />
-                Fill Test SuperAdmin Parameters
+                <svg className="h-4.5 w-4.5 mr-0.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span>Instant Local Sandbox Mode (Zero Setup)</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setIsRegistering(!isRegistering)}
-                className="mt-2 text-center text-sm ml-1 text-emerald-400 hover:text-emerald-300 hover:underline transition self-center"
-              >
-                {isRegistering ? 'Already have an account? Sign in' : 'First-time super-admin setup? Create local account'}
-              </button>
-            </div>
+            )}
           </div>
+
+          {/* SECURED: Only show Quick Access shortcuts during local development */}
+          {import.meta.env.DEV && (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-800" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-slate-900 px-2 text-slate-500 font-medium">
+                    Quick Access
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleQuickDemoSetup}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl bg-slate-950/40 text-xs font-medium text-slate-400 hover:text-emerald-400 transition"
+                >
+                  <Shield className="h-4 w-4" />
+                  Fill Test SuperAdmin Parameters
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  className="mt-2 text-center text-sm ml-1 text-emerald-400 hover:text-emerald-300 hover:underline transition self-center"
+                >
+                  {isRegistering ? 'Already have an account? Sign in' : 'First-time super-admin setup? Create local account'}
+                </button>
+              </div>
+            </div>
+          )}
           
           <div className="mt-6 pt-4 border-t border-slate-850 text-center">
             <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">

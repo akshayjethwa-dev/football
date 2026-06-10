@@ -23,6 +23,17 @@ import {
 
 const CLIENTS_COLLECTION = 'clients';
 
+// Helper function to dynamically strip out 'undefined' keys so Firestore doesn't crash
+function removeUndefinedFields(obj: any) {
+  const cleaned: any = {};
+  Object.entries(obj).forEach(([key, val]) => {
+    if (val !== undefined) {
+      cleaned[key] = val;
+    }
+  });
+  return cleaned;
+}
+
 export async function getClients(): Promise<Client[]> {
   if (isSandboxActive()) {
     return getSandboxClients();
@@ -74,8 +85,12 @@ export async function createClient(clientData: Omit<Client, 'createdAt' | 'updat
   const path = `${CLIENTS_COLLECTION}/${clientData.id}`;
   try {
     const docRef = doc(db, CLIENTS_COLLECTION, clientData.id);
+    
+    // Clean payload of any undefined values
+    const cleanedData = removeUndefinedFields(clientData);
+
     await setDoc(docRef, {
-      ...clientData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -93,8 +108,12 @@ export async function updateClient(id: string, clientUpdates: Partial<Omit<Clien
   const path = `${CLIENTS_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, CLIENTS_COLLECTION, id);
+    
+    // Clean updates of any undefined values
+    const cleanedUpdates = removeUndefinedFields(clientUpdates);
+
     await updateDoc(docRef, {
-      ...clientUpdates,
+      ...cleanedUpdates,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+/// <reference types="vite/client" />
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../services/firebaseConfig';
 import { getUserProfile, createUserProfile, loginWithEmail, loginWithGoogle as loginWithGoogleService, logout as logoutService } from '../services/authService';
@@ -17,7 +19,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Explicitly define the props for the AuthProvider
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,10 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Self-Bootstrap authenticated users to avoid blank profiles
           const email = currentUser.email || '';
-          const isSuperAdminEmail = 
-            email === 'ironpoolj@gmail.com' || 
-            email === 'superadmin@ashreysystems.com' ||
-            email.toLowerCase().includes('admin');
+          
+          // SECURE BLOCK: Strict check for the exact superadmin email only
+          const isSuperAdminEmail = email === 'superadmin@ashreysystems.com';
 
           if (!userProfile) {
             const newProfile = {
@@ -99,6 +105,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginSandbox = async () => {
+    // Force error if sandbox mode execution is attempted in production
+    if (!import.meta.env.DEV) {
+      throw new Error('Sandbox login is not available in production.');
+    }
+    
     setLoading(true);
     try {
       setSandboxActive(true);

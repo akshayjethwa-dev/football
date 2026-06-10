@@ -31,7 +31,6 @@ service cloud.firestore {
     // Role-based Access Control (RBAC) helpers
     function isBootstrappedAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'ironpoolj@gmail.com' || 
         request.auth.token.email == 'superadmin@ashreysystems.com'
       );
     }
@@ -158,20 +157,20 @@ service cloud.firestore {
         isValidClient(incoming()) &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time;
-
+        
       allow update: if isSignedIn() && isSuperAdmin() &&
         isValidClient(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time;
-
+        
       allow delete: if isSignedIn() && isSuperAdmin();
 
       // Nested campaigns
       match /campaigns/{campaignId} {
         allow get: if true; // Public can get campaign
         allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
-
+        
         allow create: if isSignedIn() && isSuperAdmin() &&
           isValidId(campaignId) &&
           incoming().id == campaignId &&
@@ -179,14 +178,14 @@ service cloud.firestore {
           isValidCampaign(incoming()) &&
           incoming().createdAt == request.time &&
           incoming().updatedAt == request.time;
-
+          
         allow update: if isSignedIn() && isSuperAdmin() &&
           isValidCampaign(incoming()) &&
           incoming().id == existing().id &&
           incoming().clientId == existing().clientId &&
           incoming().createdAt == existing().createdAt &&
           incoming().updatedAt == request.time;
-
+          
         allow delete: if isSignedIn() && isSuperAdmin();
 
         // Nested activities or events
@@ -200,21 +199,22 @@ service cloud.firestore {
             isValidEvent(incoming()) &&
             incoming().createdAt == request.time &&
             incoming().updatedAt == request.time;
-
+            
           allow update: if isSignedIn() && isSuperAdmin() &&
             isValidEvent(incoming()) &&
             incoming().id == existing().id &&
             incoming().campaignId == existing().campaignId &&
             incoming().createdAt == existing().createdAt &&
             incoming().updatedAt == request.time;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
         // Nested coupons
         match /coupons/{couponId} {
           allow get: if true;
-          allow list: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true; // Public can search or list their own
+          // SECURED: Removed '|| true'
+          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)); 
           
           allow create: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidId(couponId) &&
@@ -224,7 +224,7 @@ service cloud.firestore {
             isValidCoupon(incoming()) &&
             incoming().createdAt == request.time &&
             incoming().updatedAt == request.time;
-
+            
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidCoupon(incoming()) &&
             incoming().id == existing().id &&
@@ -232,14 +232,15 @@ service cloud.firestore {
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt &&
             incoming().updatedAt == request.time;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
         // Nested participants
         match /participants/{participantId} {
           allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
-          allow get: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true; // Public retrieval is allowed for state tracking
+          // SECURED: Removed '|| true'
+          allow get: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)); 
 
           allow create: if isValidId(participantId) &&
             incoming().id == participantId &&
@@ -249,7 +250,7 @@ service cloud.firestore {
             incoming().totalPoints == 0 &&
             incoming().createdAt == request.time &&
             incoming().updatedAt == request.time;
-
+            
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidParticipant(incoming()) &&
             incoming().id == existing().id &&
@@ -257,7 +258,7 @@ service cloud.firestore {
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt &&
             incoming().updatedAt == request.time;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
 
           // Nested responses of a participant
@@ -272,7 +273,7 @@ service cloud.firestore {
               incoming().pointsAwarded == 0 &&
               incoming().createdAt == request.time &&
               incoming().updatedAt == request.time;
-
+              
             allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
               isValidResponse(incoming()) &&
               incoming().id == existing().id &&
@@ -303,14 +304,14 @@ service cloud.firestore {
         isValidUserProfile(incoming()) &&
         incoming().createdAt == request.time &&
         incoming().updatedAt == request.time;
-
+        
       allow update: if isSignedIn() && 
         (isSuperAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().clientId == existing().clientId)) &&
         isValidUserProfile(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time;
-
+        
       allow delete: if isSignedIn() && isSuperAdmin();
     }
   }
