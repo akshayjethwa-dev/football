@@ -31,7 +31,8 @@ service cloud.firestore {
     // Role-based Access Control (RBAC) helpers
     function isBootstrappedAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'superadmin@ashreysystems.com'
+        request.auth.token.email == 'superadmin@ashreysystems.com' ||
+        request.auth.token.email == 'hello@ashreysystems.com' // <-- ADDED to allow your account
       );
     }
 
@@ -55,8 +56,9 @@ service cloud.firestore {
 
     // Entity-specific Schema Validations
     function isValidClient(client) {
+      // FIXED: Switched size check to hasOnly to safely allow optional fields (logoUrl, senderNumber)
       return client.keys().hasAll(['id', 'name', 'type', 'contactPerson', 'contactEmail', 'contactPhone', 'status', 'createdAt', 'updatedAt']) &&
-        client.keys().size() == 9 &&
+        client.keys().hasOnly(['id', 'name', 'type', 'contactPerson', 'contactEmail', 'contactPhone', 'status', 'createdAt', 'updatedAt', 'logoUrl', 'senderNumber']) &&
         client.id is string && client.id.size() <= 128 &&
         client.name is string && client.name.size() > 0 && client.name.size() <= 256 &&
         client.type is string && (client.type == 'cafe' || client.type == 'retailer' || client.type == 'gym' || client.type == 'B2B' || client.type == 'other') &&
@@ -89,8 +91,7 @@ service cloud.firestore {
         user.id == request.auth.uid &&
         user.email is string && user.email.size() <= 256 &&
         user.role is string && (user.role == 'superadmin' || user.role == 'clientadmin') &&
-        (user.clientId == null || (user.clientId is string && user.clientId.size() <= 128)) &&
-        user.createdAt is set ? true : true;
+        (user.clientId == null || (user.clientId is string && user.clientId.size() <= 128));
     }
 
     function isValidEvent(event) {
@@ -213,8 +214,7 @@ service cloud.firestore {
         // Nested coupons
         match /coupons/{couponId} {
           allow get: if true;
-          // SECURED: Removed '|| true'
-          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)); 
+          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
           
           allow create: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidId(couponId) &&
@@ -239,9 +239,8 @@ service cloud.firestore {
         // Nested participants
         match /participants/{participantId} {
           allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
-          // SECURED: Removed '|| true'
-          allow get: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)); 
-
+          allow get: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
+          
           allow create: if isValidId(participantId) &&
             incoming().id == participantId &&
             incoming().campaignId == campaignId &&
@@ -288,7 +287,7 @@ service cloud.firestore {
       }
     }
 
-    // 4. Collection Group Query For Campaigns (Required for dynamic campaign resolution by public ID)
+    // 4. Collection Group Query For Campaigns
     match /{path=**}/campaigns/{campaignId} {
       allow get, list: if true;
     }

@@ -21,6 +21,22 @@ import {
   deleteSandboxCampaign 
 } from './sandboxService';
 
+// Helper function to dynamically and deeply strip out 'undefined' keys so Firestore doesn't crash
+function removeUndefinedFields(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedFields);
+  } else if (obj !== null && typeof obj === 'object') {
+    const cleaned: any = {};
+    Object.entries(obj).forEach(([key, val]) => {
+      if (val !== undefined) {
+        cleaned[key] = removeUndefinedFields(val);
+      }
+    });
+    return cleaned;
+  }
+  return obj;
+}
+
 export function getCampaignsCollectionPath(clientId: string): string {
   return `clients/${clientId}/campaigns`;
 }
@@ -79,8 +95,12 @@ export async function createCampaign(clientId: string, campaignData: Omit<Campai
   const docPath = `${getCampaignsCollectionPath(clientId)}/${campaignData.id}`;
   try {
     const docRef = doc(db, getCampaignsCollectionPath(clientId), campaignData.id);
+    
+    // Deeply clean the payload of any undefined values
+    const cleanedData = removeUndefinedFields(campaignData);
+
     await setDoc(docRef, {
-      ...campaignData,
+      ...cleanedData,
       clientId, // keep consistency
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -103,8 +123,12 @@ export async function updateCampaign(
   const docPath = `${getCampaignsCollectionPath(clientId)}/${campaignId}`;
   try {
     const docRef = doc(db, getCampaignsCollectionPath(clientId), campaignId);
+    
+    // Deeply clean the updates payload of any undefined values
+    const cleanedUpdates = removeUndefinedFields(campaignUpdates);
+
     await updateDoc(docRef, {
-      ...campaignUpdates,
+      ...cleanedUpdates,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {

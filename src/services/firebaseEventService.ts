@@ -21,6 +21,22 @@ import {
   deleteSandboxEvent 
 } from './sandboxService';
 
+// Helper function to dynamically and deeply strip out 'undefined' keys so Firestore doesn't crash
+function removeUndefinedFields(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedFields);
+  } else if (obj !== null && typeof obj === 'object') {
+    const cleaned: any = {};
+    Object.entries(obj).forEach(([key, val]) => {
+      if (val !== undefined) {
+        cleaned[key] = removeUndefinedFields(val);
+      }
+    });
+    return cleaned;
+  }
+  return obj;
+}
+
 export function getEventsCollectionPath(clientId: string, campaignId: string): string {
   return `clients/${clientId}/campaigns/${campaignId}/events`;
 }
@@ -83,8 +99,12 @@ export async function createEvent(
   const docPath = `${getEventsCollectionPath(clientId, campaignId)}/${eventData.id}`;
   try {
     const docRef = doc(db, getEventsCollectionPath(clientId, campaignId), eventData.id);
+    
+    // Clean the payload to remove undefined fields like `scoringConfig`
+    const cleanedData = removeUndefinedFields(eventData);
+
     await setDoc(docRef, {
-      ...eventData,
+      ...cleanedData,
       campaignId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -108,8 +128,12 @@ export async function updateEvent(
   const docPath = `${getEventsCollectionPath(clientId, campaignId)}/${eventId}`;
   try {
     const docRef = doc(db, getEventsCollectionPath(clientId, campaignId), eventId);
+    
+    // Clean updates payload
+    const cleanedUpdates = removeUndefinedFields(eventUpdates);
+
     await updateDoc(docRef, {
-      ...eventUpdates,
+      ...cleanedUpdates,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
