@@ -1,0 +1,6 @@
+{
+  "name": "Football Campaign Engine",
+  "description": "WhatsApp-first sports prediction and campaign management platform for Ashrey Systems.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

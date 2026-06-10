@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "Client": {
+      "title": "Client",
+      "description": "A multi-tenant business client managing campaign instances",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["cafe", "retailer", "gym", "B2B", "other"] },
+        "contactPerson": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "senderNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "type", "contactPerson", "contactEmail", "contactPhone", "status", "createdAt", "updatedAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Predictive or promotional sports campaign under a client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["football_world_cup", "cricket", "festival", "custom"] },
+        "gameType": { "type": "string", "enum": ["prediction", "quiz", "referral", "mixed"] },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "archived"] },
+        "config": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "name", "description", "eventType", "gameType", "startDate", "endDate", "status", "config", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile with roles like SuperAdmin or ClientAdmin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "clientadmin"] },
+        "clientId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "role", "createdAt", "updatedAt"]
+    },
+    "CampaignEvent": {
+      "title": "CampaignEvent",
+      "description": "An interactive event or question within a game campaign",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "type": { "type": "string", "enum": ["match", "question"] },
+        "label": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "metadata": { "type": "object" },
+        "correctAnswer": { "type": "string" },
+        "scoringConfig": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "campaignId", "type", "label", "startTime", "endTime", "metadata", "createdAt", "updatedAt"]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "A single registered participant or lead within a campaign",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "source": { "type": "string", "enum": ["landing_page", "qr", "manual_import", "whatsapp_optin"] },
+        "whatsappOptIn": { "type": "boolean" },
+        "totalPoints": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "campaignId", "clientId", "name", "phone", "source", "whatsappOptIn", "totalPoints", "createdAt", "updatedAt"]
+    },
+    "CampaignResponse": {
+      "title": "CampaignResponse",
+      "description": "An event submission or interactive prediction/answer made by a participant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "participantId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "answer": { "type": "string" },
+        "pointsAwarded": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "participantId", "campaignId", "eventId", "answer", "pointsAwarded", "createdAt", "updatedAt"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "A promotional coupon or reward code representing campaign incentives",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "code": { "type": "string" },
+        "participantId": { "type": "string" },
+        "status": { "type": "string", "enum": ["unused", "used", "expired"] },
+        "metadata": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "campaignId", "clientId", "code", "status", "metadata", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Collection of business tenants"
+    },
+    "/clients/{clientId}/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Subcollection under clients holding campaign details"
+    },
+    "/clients/{clientId}/campaigns/{campaignId}/events/{eventId}": {
+      "schema": "CampaignEvent",
+      "description": "Subcollection of predictions/questions within a campaign context"
+    },
+    "/clients/{clientId}/campaigns/{campaignId}/participants/{participantId}": {
+      "schema": "Participant",
+      "description": "Registered participants in a campaign"
+    },
+    "/clients/{clientId}/campaigns/{campaignId}/participants/{participantId}/responses/{responseId}": {
+      "schema": "CampaignResponse",
+      "description": "Event responses/predictions submitted by participants"
+    },
+    "/clients/{clientId}/campaigns/{campaignId}/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Coupons and campaign game rewards"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user roles and metadata"
+    }
+  }
+}

@@ -1,0 +1,317 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'password');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Role-based Access Control (RBAC) helpers
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'ironpoolj@gmail.com' || 
+        request.auth.token.email == 'superadmin@ashreysystems.com'
+      );
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        isBootstrappedAdmin() || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin'
+        )
+      );
+    }
+
+    // Future-Proofing helper for ClientAdmin
+    function isClientAdmin(clientId) {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'clientadmin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clientId == clientId
+      );
+    }
+
+    // Entity-specific Schema Validations
+    function isValidClient(client) {
+      return client.keys().hasAll(['id', 'name', 'type', 'contactPerson', 'contactEmail', 'contactPhone', 'status', 'createdAt', 'updatedAt']) &&
+        client.keys().size() == 9 &&
+        client.id is string && client.id.size() <= 128 &&
+        client.name is string && client.name.size() > 0 && client.name.size() <= 256 &&
+        client.type is string && (client.type == 'cafe' || client.type == 'retailer' || client.type == 'gym' || client.type == 'B2B' || client.type == 'other') &&
+        client.contactPerson is string && client.contactPerson.size() <= 256 &&
+        client.contactEmail is string && client.contactEmail.size() <= 256 &&
+        client.contactPhone is string && client.contactPhone.size() <= 64 &&
+        client.status is string && (client.status == 'active' || client.status == 'inactive') &&
+        (client.get('logoUrl', '') is string && client.get('logoUrl', '').size() <= 1024) &&
+        (client.get('senderNumber', '') is string && client.get('senderNumber', '').size() <= 64);
+    }
+
+    function isValidCampaign(campaign) {
+      return campaign.keys().hasAll(['id', 'clientId', 'name', 'description', 'eventType', 'gameType', 'startDate', 'endDate', 'status', 'config', 'createdAt', 'updatedAt']) &&
+        campaign.keys().size() == 12 &&
+        campaign.id is string && campaign.id.size() <= 128 &&
+        campaign.clientId is string && campaign.clientId.size() <= 128 &&
+        campaign.name is string && campaign.name.size() > 0 && campaign.name.size() <= 256 &&
+        campaign.description is string && campaign.description.size() <= 2048 &&
+        campaign.eventType is string && (campaign.eventType == 'football_world_cup' || campaign.eventType == 'cricket' || campaign.eventType == 'festival' || campaign.eventType == 'custom') &&
+        campaign.gameType is string && (campaign.gameType == 'prediction' || campaign.gameType == 'quiz' || campaign.gameType == 'referral' || campaign.gameType == 'mixed') &&
+        campaign.startDate is string && campaign.startDate.size() <= 64 &&
+        campaign.endDate is string && campaign.endDate.size() <= 64 &&
+        campaign.status is string && (campaign.status == 'draft' || campaign.status == 'active' || campaign.status == 'archived') &&
+        campaign.config is map;
+    }
+
+    function isValidUserProfile(user) {
+      return user.keys().hasAll(['id', 'email', 'role', 'clientId', 'createdAt', 'updatedAt']) &&
+        user.keys().size() == 6 &&
+        user.id == request.auth.uid &&
+        user.email is string && user.email.size() <= 256 &&
+        user.role is string && (user.role == 'superadmin' || user.role == 'clientadmin') &&
+        (user.clientId == null || (user.clientId is string && user.clientId.size() <= 128)) &&
+        user.createdAt is set ? true : true;
+    }
+
+    function isValidEvent(event) {
+      return event.keys().hasAll(['id', 'campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt']) &&
+        event.keys().size() >= 9 && event.keys().size() <= 11 &&
+        event.id is string && event.id.size() <= 128 &&
+        event.campaignId is string && event.campaignId.size() <= 128 &&
+        event.type is string && (event.type == 'match' || event.type == 'question') &&
+        event.label is string && event.label.size() > 0 && event.label.size() <= 512 &&
+        event.startTime is string && event.startTime.size() <= 64 &&
+        event.endTime is string && event.endTime.size() <= 64 &&
+        event.metadata is map &&
+        (event.get('correctAnswer', null) == null || event.get('correctAnswer', null) is string) &&
+        (event.get('scoringConfig', null) == null || event.get('scoringConfig', null) is map);
+    }
+
+    function isValidParticipant(p) {
+      return p.keys().hasAll(['id', 'campaignId', 'clientId', 'name', 'phone', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
+        p.keys().size() >= 10 && p.keys().size() <= 11 &&
+        p.id is string && p.id.size() <= 128 &&
+        p.campaignId is string && p.campaignId.size() <= 128 &&
+        p.clientId is string && p.clientId.size() <= 128 &&
+        p.name is string && p.name.size() > 0 && p.name.size() <= 256 &&
+        p.phone is string && p.phone.size() > 0 && p.phone.size() <= 64 &&
+        (p.get('email', null) == null || (p.email is string && p.email.size() <= 256)) &&
+        p.source is string && (p.source == 'landing_page' || p.source == 'qr' || p.source == 'manual_import' || p.source == 'whatsapp_optin') &&
+        p.whatsappOptIn is bool &&
+        p.totalPoints is int && p.totalPoints >= 0;
+    }
+
+    function isValidResponse(r) {
+      return r.keys().hasAll(['id', 'participantId', 'campaignId', 'eventId', 'answer', 'pointsAwarded', 'createdAt', 'updatedAt']) &&
+        r.keys().size() == 8 &&
+        r.id is string && r.id.size() <= 128 &&
+        r.participantId is string && r.participantId.size() <= 128 &&
+        r.campaignId is string && r.campaignId.size() <= 128 &&
+        r.eventId is string && r.eventId.size() <= 128 &&
+        r.answer is string && r.answer.size() <= 1024 &&
+        r.pointsAwarded is int && r.pointsAwarded >= 0;
+    }
+
+    function isValidCoupon(c) {
+      return c.keys().hasAll(['id', 'campaignId', 'clientId', 'code', 'participantId', 'status', 'metadata', 'createdAt', 'updatedAt']) &&
+        c.keys().size() == 9 &&
+        c.id is string && c.id.size() <= 128 &&
+        c.campaignId is string && c.campaignId.size() <= 128 &&
+        c.clientId is string && c.clientId.size() <= 128 &&
+        c.code is string && c.code.size() > 0 && c.code.size() <= 256 &&
+        (c.participantId == null || (c.participantId is string && c.participantId.size() <= 128)) &&
+        c.status is string && (c.status == 'unused' || c.status == 'used' || c.status == 'expired') &&
+        c.metadata is map;
+    }
+
+    // 2. Client Collection Rules
+    match /clients/{clientId} {
+      allow read, write: if false; // fallback
+
+      allow get: if true; // Public can retrieve client for campaign branding
+      allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
+      
+      allow create: if isSignedIn() && isSuperAdmin() &&
+        isValidId(clientId) && 
+        incoming().id == clientId && 
+        isValidClient(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn() && isSuperAdmin() &&
+        isValidClient(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+
+      allow delete: if isSignedIn() && isSuperAdmin();
+
+      // Nested campaigns
+      match /campaigns/{campaignId} {
+        allow get: if true; // Public can get campaign
+        allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
+
+        allow create: if isSignedIn() && isSuperAdmin() &&
+          isValidId(campaignId) &&
+          incoming().id == campaignId &&
+          incoming().clientId == clientId &&
+          isValidCampaign(incoming()) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+
+        allow update: if isSignedIn() && isSuperAdmin() &&
+          isValidCampaign(incoming()) &&
+          incoming().id == existing().id &&
+          incoming().clientId == existing().clientId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time;
+
+        allow delete: if isSignedIn() && isSuperAdmin();
+
+        // Nested activities or events
+        match /events/{eventId} {
+          allow get, list: if true; // Public can view match events or question trivias
+
+          allow create: if isSignedIn() && isSuperAdmin() &&
+            isValidId(eventId) &&
+            incoming().id == eventId &&
+            incoming().campaignId == campaignId &&
+            isValidEvent(incoming()) &&
+            incoming().createdAt == request.time &&
+            incoming().updatedAt == request.time;
+
+          allow update: if isSignedIn() && isSuperAdmin() &&
+            isValidEvent(incoming()) &&
+            incoming().id == existing().id &&
+            incoming().campaignId == existing().campaignId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time;
+
+          allow delete: if isSignedIn() && isSuperAdmin();
+        }
+
+        // Nested coupons
+        match /coupons/{couponId} {
+          allow get: if true;
+          allow list: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true; // Public can search or list their own
+          
+          allow create: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
+            isValidId(couponId) &&
+            incoming().id == couponId &&
+            incoming().campaignId == campaignId &&
+            incoming().clientId == clientId &&
+            isValidCoupon(incoming()) &&
+            incoming().createdAt == request.time &&
+            incoming().updatedAt == request.time;
+
+          allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
+            isValidCoupon(incoming()) &&
+            incoming().id == existing().id &&
+            incoming().campaignId == existing().campaignId &&
+            incoming().clientId == existing().clientId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time;
+
+          allow delete: if isSignedIn() && isSuperAdmin();
+        }
+
+        // Nested participants
+        match /participants/{participantId} {
+          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
+          allow get: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true; // Public retrieval is allowed for state tracking
+
+          allow create: if isValidId(participantId) &&
+            incoming().id == participantId &&
+            incoming().campaignId == campaignId &&
+            incoming().clientId == clientId &&
+            isValidParticipant(incoming()) &&
+            incoming().totalPoints == 0 &&
+            incoming().createdAt == request.time &&
+            incoming().updatedAt == request.time;
+
+          allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
+            isValidParticipant(incoming()) &&
+            incoming().id == existing().id &&
+            incoming().campaignId == existing().campaignId &&
+            incoming().clientId == existing().clientId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time;
+
+          allow delete: if isSignedIn() && isSuperAdmin();
+
+          // Nested responses of a participant
+          match /responses/{responseId} {
+            allow get, list: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true;
+
+            allow create: if isValidId(responseId) &&
+              incoming().id == responseId &&
+              incoming().participantId == participantId &&
+              incoming().campaignId == campaignId &&
+              isValidResponse(incoming()) &&
+              incoming().pointsAwarded == 0 &&
+              incoming().createdAt == request.time &&
+              incoming().updatedAt == request.time;
+
+            allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
+              isValidResponse(incoming()) &&
+              incoming().id == existing().id &&
+              incoming().participantId == existing().participantId &&
+              incoming().campaignId == existing().campaignId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().updatedAt == request.time;
+
+            allow delete: if isSignedIn() && isSuperAdmin();
+          }
+        }
+      }
+    }
+
+    // 4. Collection Group Query For Campaigns (Required for dynamic campaign resolution by public ID)
+    match /{path=**}/campaigns/{campaignId} {
+      allow get, list: if true;
+    }
+
+    // 3. User Profiles Collection Rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow list: if isSignedIn() && isSuperAdmin();
+
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin()) &&
+        isValidId(userId) &&
+        incoming().id == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn() && 
+        (isSuperAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().clientId == existing().clientId)) &&
+        isValidUserProfile(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+
+      allow delete: if isSignedIn() && isSuperAdmin();
+    }
+  }
+}
