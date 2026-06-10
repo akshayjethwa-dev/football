@@ -161,7 +161,7 @@ export default function CampaignLeaderboard({ clientId, campaignId }: CampaignLe
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 }}
-                className="bg-gradient-to-b from-slate-900/60 to-slate-950/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden flex flex-col items-center text-center group hover:border-slate-700 transition"
+                className="bg-linear-to-b from-slate-900/60 to-slate-950/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden flex flex-col items-center text-center group hover:border-slate-700 transition"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-slate-500/5 rounded-full blur-2xl group-hover:bg-slate-500/10 transition"></div>
                 <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 font-extrabold text-sm mb-3">
@@ -190,7 +190,7 @@ export default function CampaignLeaderboard({ clientId, campaignId }: CampaignLe
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="bg-gradient-to-b from-slate-900/90 to-slate-950/80 border border-yellow-500/30 p-6 rounded-2xl relative overflow-hidden flex flex-col items-center text-center shadow-lg hover:border-yellow-500/50 transition group"
+                className="bg-linear-to-b from-slate-900/90 to-slate-950/80 border border-yellow-500/30 p-6 rounded-2xl relative overflow-hidden flex flex-col items-center text-center shadow-lg hover:border-yellow-500/50 transition group"
               >
                 <div className="absolute -top-6 -right-6 w-20 h-20 bg-yellow-500/10 rounded-full blur-2xl group-hover:bg-yellow-500/20 transition"></div>
                 <div className="absolute top-2.5 left-2.5 bg-yellow-400/10 border border-yellow-400/20 rounded-full px-2.5 py-0.5 flex items-center gap-1">
@@ -224,7 +224,7 @@ export default function CampaignLeaderboard({ clientId, campaignId }: CampaignLe
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-gradient-to-b from-slate-900/60 to-slate-950/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden flex flex-col items-center text-center group hover:border-slate-700 transition"
+                className="bg-linear-to-b from-slate-900/60 to-slate-950/40 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden flex flex-col items-center text-center group hover:border-slate-700 transition"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-orange-650/5 rounded-full blur-2xl group-hover:bg-orange-650/10 transition"></div>
                 <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 font-extrabold text-sm mb-3">

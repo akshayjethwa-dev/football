@@ -257,10 +257,10 @@ export default function ClientsPage() {
             return (
               <div 
                 key={client.id}
-                className="group relative bg-slate-900/60 hover:bg-slate-900/90 border border-slate-800/80 hover:border-emerald-500/25 rounded-2xl p-6 transition flex flex-col justify-between h-full hover:shadow-xl hover:shadow-emerald-500/[0.02]"
+                className="group relative bg-slate-900/60 hover:bg-slate-900/90 border border-slate-800/80 hover:border-emerald-500/25 rounded-2xl p-6 transition flex flex-col justify-between h-full hover:shadow-xl hover:shadow-emerald-500/2"
               >
                 {/* Visual Accent */}
-                <div className="absolute top-0 right-12 h-px w-24 bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition duration-500" />
+                <div className="absolute top-0 right-12 h-px w-24 bg-linear-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition duration-500" />
                 
                 <div className="space-y-4">
                   {/* Title Bar layout */}

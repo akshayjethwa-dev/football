@@ -49,6 +49,7 @@ export interface Campaign {
   clientId: string;
   name: string;
   description: string;
+  rewardsDescription?: string;
   eventType: CampaignEventType;
   gameType: CampaignGameType;
   startDate: string; // ISO string for high reliability on input

@@ -10,6 +10,7 @@ import {
   useParticipantDetails
 } from '../hooks/useParticipants';
 import { useSendWelcomeMessage } from '../hooks/useWhatsApp';
+import { getParticipantById } from '../services/firebaseParticipantService';
 import { 
   Trophy, 
   Mail, 
@@ -23,7 +24,9 @@ import {
   LogOut,
   ChevronRight,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  Gift, 
+  Ticket
 } from 'lucide-react';
 import { CampaignEvent } from '../types';
 
@@ -98,9 +101,32 @@ export default function PublicCampaignLanding() {
       return;
     }
 
-    const generatedId = `part_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    // Normalize phone number to prevent duplicates (e.g., +919876543210 vs 9876543210)
+    let cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.slice(-10); // Capture the core 10 digits
+    }
+    
+    if (cleanPhone.length < 7) {
+      setFormError('Please enter a valid phone number.');
+      return;
+    }
+
+    // Deterministic ID based on normalized phone number
+    const generatedId = `part_${cleanPhone}`;
 
     try {
+      // 1. Check if the participant already exists with this phone number
+      const existingParticipant = await getParticipantById(client!.id, campaign!.id, generatedId);
+      
+      if (existingParticipant) {
+        // Participant exists! Restore their session to show previous answers and block double-voting
+        localStorage.setItem(`predictive_participant_${campaignId}`, generatedId);
+        setParticipantId(generatedId);
+        return;
+      }
+
+      // 2. If new, register them
       await registerMutation.mutateAsync({
         id: generatedId,
         campaignId: campaign!.id,
@@ -267,6 +293,19 @@ export default function PublicCampaignLanding() {
                   <p className="text-xs text-[#737373]">Register to start submitting predictions and win points!</p>
                 </div>
 
+                {/* DYNAMIC Rewards Description Banner */}
+                {campaign.rewardsDescription && (
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3">
+                    <Gift className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-900">What's in it for you?</h4>
+                      <p className="text-[11px] text-emerald-700 leading-relaxed mt-0.5 whitespace-pre-wrap">
+                        {campaign.rewardsDescription}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <form onSubmit={handleRegister} className="space-y-4">
                   {formError && (
                     <div className="bg-rose-50 border border-rose-100 text-rose-600 p-3 rounded-xl text-xs flex items-start space-x-2">
@@ -303,7 +342,7 @@ export default function PublicCampaignLanding() {
                         required
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. +1234567890"
+                        placeholder="e.g. 9876543210"
                         className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                       />
                     </div>
@@ -399,6 +438,26 @@ export default function PublicCampaignLanding() {
                     </button>
                   </div>
                 </div>
+
+                {/* DYNAMIC Rewards Dashboard Banner */}
+                {campaign.rewardsDescription && (
+                  <div className="bg-linear-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 shadow-lg text-white flex items-center justify-between relative overflow-hidden">
+                    <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+                      <Trophy className="h-24 w-24" />
+                    </div>
+                    <div className="space-y-1 pr-4 relative z-10">
+                      <h3 className="font-extrabold text-sm flex items-center gap-1.5 shadow-sm">
+                        <Gift className="h-4 w-4" /> Unlocking Rewards
+                      </h3>
+                      <p className="text-xs text-emerald-50 leading-snug whitespace-pre-wrap">
+                        {campaign.rewardsDescription}
+                      </p>
+                    </div>
+                    <div className="shrink-0 h-11 w-11 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/30 relative z-10 shadow-inner">
+                      <Ticket className="h-5 w-5 text-white drop-shadow-md" />
+                    </div>
+                  </div>
+                )}
 
                 {/* ACTIVE QUESTIONS BOARD */}
                 <div className="space-y-3">
@@ -571,7 +630,7 @@ export default function PublicCampaignLanding() {
                     <div className="space-y-2.5">
                       {pendingEvents.map(evt => {
                         const userResp = responses.find(r => r.eventId === evt.id);
-                        const isResolved = evt.correctAnswer !== null;
+                        const isResolved = evt.correctAnswer !== null && evt.correctAnswer !== undefined;
                         const isWinner = isResolved && evt.correctAnswer === userResp?.answer;
 
                         return (
@@ -602,7 +661,7 @@ export default function PublicCampaignLanding() {
                                 </div>
                               ) : (
                                 <span className="px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-100 text-[10px] font-bold rounded-full tracking-wide">
-                                  Pending Resolution
+                                  Prediction Locked
                                 </span>
                               )}
                             </div>

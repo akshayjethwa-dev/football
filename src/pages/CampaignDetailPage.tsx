@@ -107,10 +107,10 @@ export default function CampaignDetailPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [choicesRaw, setChoicesRaw] = useState(''); // comma-separated choices for trivia questions
 
-  // Scoring config fields
+  // Scoring config fields (Fixed TS Types here)
   const [overrideScoring, setOverrideScoring] = useState(false);
-  const [correctPointsOverride, setCorrectPointsOverride] = useState<number>('');
-  const [participationPointsOverride, setParticipationPointsOverride] = useState<number>('');
+  const [correctPointsOverride, setCorrectPointsOverride] = useState<number | ''>('');
+  const [participationPointsOverride, setParticipationPointsOverride] = useState<number | ''>('');
 
   // Manage quick result recording modal
   const [recordingResultEvent, setRecordingResultEvent] = useState<CampaignEvent | null>(null);
@@ -361,7 +361,7 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-3">
+      <div className="flex flex-col items-center justify-center min-h-100 space-y-3">
         <svg className="animate-spin h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -652,7 +652,7 @@ export default function CampaignDetailPage() {
                             <span className="inline-block bg-purple-500/15 text-purple-400 border border-purple-500/10 font-mono text-[9px] px-2 py-0.5 rounded font-bold uppercase">
                               🧠 Trivia Quiz
                             </span>
-                            <p className="text-xxs text-slate-500 truncate max-w-[150px]">
+                            <p className="text-xxs text-slate-500 truncate max-w-37.5">
                               {evt.metadata.choices ? `${evt.metadata.choices.length} choices` : 'Free text'}
                             </p>
                           </div>
@@ -802,7 +802,7 @@ export default function CampaignDetailPage() {
             </div>
 
             {isParticipantsLoading ? (
-              <div className="flex flex-col items-center justify-center min-h-[250px] space-y-2">
+              <div className="flex flex-col items-center justify-center min-h-62.5 space-y-2">
                 <svg className="animate-spin h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -865,7 +865,7 @@ export default function CampaignDetailPage() {
                             <div className="text-xxs font-mono text-slate-500">ID: {p.id}</div>
                           </td>
                           <td className="py-4 px-4 font-mono">{p.phone}</td>
-                          <td className="py-4 px-4 truncate max-w-[150px]">{p.email || <span className="text-slate-650">—</span>}</td>
+                          <td className="py-4 px-4 truncate max-w-37.5">{p.email || <span className="text-slate-650">—</span>}</td>
                           <td className="py-4 px-4">
                             <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${
                               p.source === 'landing_page' 
@@ -1023,7 +1023,7 @@ export default function CampaignDetailPage() {
 
                 {/* Group Label */}
                 <div className="space-y-1.5">
-                  <label className="block text-xxs uppercase font-mono font-bold text-slate-400 font-sans">
+                  <label className="block text-xxs uppercase font-mono font-bold text-slate-400">
                     Group Stage / Bracket Category
                   </label>
                   <input
@@ -1052,7 +1052,7 @@ export default function CampaignDetailPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-xxs uppercase font-mono font-bold text-slate-400 font-sans">
+                      <label className="block text-xxs uppercase font-mono font-bold text-slate-400">
                         Second Opponent (Team B) *
                       </label>
                       <input
@@ -1100,7 +1100,7 @@ export default function CampaignDetailPage() {
 
                 {/* Expiration End Dates */}
                 <div className="space-y-1.5">
-                  <label className="block text-xxs uppercase font-mono font-bold text-slate-400 font-sans">
+                  <label className="block text-xxs uppercase font-mono font-bold text-slate-400">
                     Prediction Window Closes (Submission Gate) *
                   </label>
                   <input

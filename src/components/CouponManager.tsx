@@ -171,14 +171,14 @@ export default function CouponManager({ clientId, campaignId }: CouponManagerPro
       {/* Messages */}
       {successMsg && (
         <div className="bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl flex items-center gap-3 text-xs">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
         <div className="bg-red-950/40 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3 text-xs">
-          <AlertTriangle className="h-4 w-4 text-red-450 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 text-red-450 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}

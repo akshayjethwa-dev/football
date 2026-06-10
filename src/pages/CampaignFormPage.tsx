@@ -29,6 +29,7 @@ export default function CampaignFormPage() {
   const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [rewardsDescription, setRewardsDescription] = useState(''); // Added rewards state
   const [eventType, setEventType] = useState<CampaignEventType>('football_world_cup');
   const [gameType, setGameType] = useState<CampaignGameType>('prediction');
   const [startDate, setStartDate] = useState('');
@@ -75,6 +76,7 @@ export default function CampaignFormPage() {
             setId(camp.id);
             setName(camp.name);
             setDescription(camp.description);
+            setRewardsDescription(camp.rewardsDescription || ''); // Load existing rewards text
             setEventType(camp.eventType);
             setGameType(camp.gameType);
             
@@ -144,6 +146,7 @@ export default function CampaignFormPage() {
       clientId,
       name: name.trim(),
       description: description.trim(),
+      rewardsDescription: rewardsDescription.trim() || undefined, // Include in payload
       eventType,
       gameType,
       startDate,
@@ -181,7 +184,7 @@ export default function CampaignFormPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-3">
+      <div className="flex flex-col items-center justify-center min-h-100 space-y-3">
         <svg className="animate-spin h-8 w-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -253,7 +256,7 @@ export default function CampaignFormPage() {
               />
             </div>
 
-            <div className="space-y-1.5Col">
+            <div className="space-y-1.5 col-span-1">
               <label className="block text-xxs uppercase font-mono font-bold text-slate-400">
                 Functional Slug/ID (System Primary Key) *
               </label>
@@ -357,6 +360,23 @@ export default function CampaignFormPage() {
                 placeholder="Summarize the reward rules, predictive elements, and schedules..."
                 className="bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-white block w-full px-4 py-3 rounded-xl placeholder-slate-705 text-sm"
               />
+            </div>
+
+            {/* NEW: Rewards Description Input */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-xxs uppercase font-mono font-bold text-emerald-400">
+                Rewards & Prize Pitch (Optional)
+              </label>
+              <textarea
+                value={rewardsDescription}
+                onChange={(e) => setRewardsDescription(e.target.value)}
+                rows={2}
+                placeholder="e.g., Top the leaderboard to win a 50% OFF coupon on all pizzas!"
+                className="bg-emerald-950/20 border border-emerald-900/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-emerald-100 block w-full px-4 py-3 rounded-xl placeholder-emerald-900/50 text-sm"
+              />
+              <span className="text-[10px] text-slate-500">
+                If provided, this text will display prominently on the public landing page to motivate participants.
+              </span>
             </div>
           </div>
         </div>

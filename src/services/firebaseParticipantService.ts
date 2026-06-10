@@ -26,6 +26,22 @@ import {
   getSandboxAllResponsesForCampaign
 } from './sandboxService';
 
+// Helper function to dynamically and deeply strip out 'undefined' keys so Firestore doesn't crash
+function removeUndefinedFields(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedFields);
+  } else if (obj !== null && typeof obj === 'object') {
+    const cleaned: any = {};
+    Object.entries(obj).forEach(([key, val]) => {
+      if (val !== undefined) {
+        cleaned[key] = removeUndefinedFields(val);
+      }
+    });
+    return cleaned;
+  }
+  return obj;
+}
+
 export function getParticipantsCollectionPath(clientId: string, campaignId: string): string {
   return `clients/${clientId}/campaigns/${campaignId}/participants`;
 }
@@ -131,8 +147,12 @@ export async function createParticipant(
   const docPath = `${colPath}/${participantData.id}`;
   try {
     const docRef = doc(db, colPath, participantData.id);
+    
+    // Clean payload of undefined values like email
+    const cleanedData = removeUndefinedFields(participantData);
+
     await setDoc(docRef, {
-      ...participantData,
+      ...cleanedData,
       totalPoints: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -158,8 +178,12 @@ export async function updateParticipant(
   const docPath = `${colPath}/${participantId}`;
   try {
     const docRef = doc(db, colPath, participantId);
+    
+    // Clean updates of undefined values
+    const cleanedUpdates = removeUndefinedFields(updates);
+
     await updateDoc(docRef, {
-      ...updates,
+      ...cleanedUpdates,
       updatedAt: serverTimestamp()
     });
   } catch (error) {
@@ -209,8 +233,12 @@ export async function createResponse(
   const docPath = `${colPath}/${responseData.id}`;
   try {
     const docRef = doc(db, colPath, responseData.id);
+    
+    // Clean payload of undefined values
+    const cleanedData = removeUndefinedFields(responseData);
+
     await setDoc(docRef, {
-      ...responseData,
+      ...cleanedData,
       pointsAwarded: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
