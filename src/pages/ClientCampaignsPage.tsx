@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getClientById } from '../services/firebaseClientService';
 import { getCampaigns, deleteCampaign, updateCampaign } from '../services/firebaseCampaignService';
+import { getCampaignPublicUrl } from '../services/urlService';
 import { Client, Campaign, CampaignStatus, CampaignEventType, CampaignGameType } from '../types';
 import { 
   ArrowLeft, 
@@ -22,7 +23,8 @@ import {
   Clock,
   Sparkles,
   PhoneCall,
-  LayoutGrid
+  LayoutGrid,
+  Copy
 } from 'lucide-react';
 
 export default function ClientCampaignsPage() {
@@ -309,7 +311,10 @@ export default function ClientCampaignsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredCampaigns.map((camp) => (
+            {filteredCampaigns.map((camp) => {
+              const publicUrl = getCampaignPublicUrl(camp.id);
+              
+              return (
               <div 
                 key={camp.id}
                 className="bg-slate-900 border border-slate-800 hover:border-emerald-500/20 rounded-2xl p-5 sm:p-6 transition flex flex-col justify-between space-y-5"
@@ -393,11 +398,27 @@ export default function ClientCampaignsPage() {
 
                 {/* Temporal brackets & Actions footer */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between pt-4 border-t border-slate-850/80 mt-2 text-xxs">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Clock className="h-3.5 w-3.5 text-slate-600" />
-                    <span className="font-mono">
-                      {camp.startDate ? camp.startDate.substring(0, 10) : 'TBD'} — {camp.endDate ? camp.endDate.substring(0, 10) : 'TBD'}
-                    </span>
+                  <div className="flex flex-col gap-1 text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="font-mono">
+                        {camp.startDate ? camp.startDate.substring(0, 10) : 'TBD'} — {camp.endDate ? camp.endDate.substring(0, 10) : 'TBD'}
+                      </span>
+                    </div>
+                    
+                    {camp.status === 'active' && publicUrl && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-mono text-[10px] text-slate-500 uppercase">Public Link:</span>
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(publicUrl)}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[10px] text-emerald-400 hover:border-emerald-500/40 hover:text-emerald-300 transition"
+                        >
+                          <span className="truncate max-w-40">{publicUrl.replace(/^https?:\/\//, '')}</span>
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 self-end">
@@ -428,7 +449,7 @@ export default function ClientCampaignsPage() {
                 </div>
 
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
