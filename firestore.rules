@@ -72,7 +72,7 @@ service cloud.firestore {
     function isValidCampaign(campaign) {
       // FIXED: Moved description, startDate, endDate to optional fields and replaced brittle size() check with hasOnly
       return campaign.keys().hasAll(['id', 'clientId', 'name', 'eventType', 'gameType', 'status', 'config', 'createdAt', 'updatedAt']) &&
-        campaign.keys().hasOnly(['id', 'clientId', 'name', 'description', 'eventType', 'gameType', 'startDate', 'endDate', 'status', 'config', 'createdAt', 'updatedAt', 'metadata']) &&
+        campaign.keys().hasOnly(['id', 'clientId', 'name', 'description', 'rewardsDescription', 'eventType', 'gameType', 'startDate', 'endDate', 'status', 'config', 'createdAt', 'updatedAt', 'metadata']) &&
         campaign.id is string && campaign.id.size() <= 128 &&
         campaign.clientId is string && campaign.clientId.size() <= 128 &&
         campaign.name is string && campaign.name.size() > 0 && campaign.name.size() <= 256 &&

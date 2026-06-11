@@ -101,9 +101,9 @@ export async function createCampaign(clientId: string, campaignData: Omit<Campai
     // Deeply clean the payload of any undefined values
     const cleanedData = removeUndefinedFields(campaignData);
 
-    // Filter fields to strictly match what firestore.rules allows in `hasOnly`
+    // ADDED: 'rewardsDescription' to the allowed array
     const allowedFields = [
-      'id', 'clientId', 'name', 'description', 'eventType', 'gameType', 
+      'id', 'clientId', 'name', 'description', 'rewardsDescription', 'eventType', 'gameType', 
       'startDate', 'endDate', 'status', 'config', 'metadata'
     ];
     
@@ -147,9 +147,9 @@ export async function updateCampaign(
     // Deeply clean the updates payload of any undefined values
     const cleanedUpdates = removeUndefinedFields(campaignUpdates);
 
-    // Filter fields to strictly match what firestore.rules allows
+    // ADDED: 'rewardsDescription' to the allowed array
     const allowedFields = [
-      'name', 'description', 'eventType', 'gameType', 
+      'name', 'description', 'rewardsDescription', 'eventType', 'gameType', 
       'startDate', 'endDate', 'status', 'config', 'metadata'
     ];
 
