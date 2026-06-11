@@ -10,7 +10,8 @@ import {
   query,
   orderBy,
   collectionGroup,
-  where
+  where,
+  limit
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebaseConfig';
 import { Participant, CampaignResponse, Campaign, Client } from '../types';
@@ -58,34 +59,62 @@ export async function getCampaignByPublicId(campaignId: string): Promise<{ campa
     const campaigns = getSandboxCampaigns('ashrey-cafe');
     const camp = campaigns.find(c => c.id === campaignId) || campaigns[0];
     const clients = getSandboxClients();
-    const cl = clients.find(c => c.id === camp.clientId) || clients[0];
+    const cl = clients.find(c => c.id === camp?.clientId) || clients[0];
+    if (!camp) return null;
     return { campaign: camp, client: cl };
   }
 
   try {
-    const q = query(collectionGroup(db, 'campaigns'), where('id', '==', campaignId));
+    // Note: This requires a Collection Group index on 'campaigns' for the 'id' field in Firebase Console.
+    const q = query(
+      collectionGroup(db, 'campaigns'), 
+      where('id', '==', campaignId),
+      limit(1)
+    );
+    
     const querySnapshot = await getDocs(q);
+    
     if (querySnapshot.empty) {
+      console.warn(`Campaign not found for ID: ${campaignId}`);
       return null;
     }
+    
     const campaignDoc = querySnapshot.docs[0];
-    const campaign = { ...campaignDoc.data() as Campaign, id: campaignDoc.id };
+    const campaignData = campaignDoc.data();
+    
+    // Safety check - if data doesn't exist or is malformed
+    if (!campaignData || !campaignData.clientId) {
+       console.error(`Campaign ${campaignId} exists but is missing clientId data.`);
+       return null;
+    }
+
+    const campaign = { ...campaignData as Campaign, id: campaignDoc.id };
 
     // Now resolve its owning Client tenant
     const clientDocRef = doc(db, 'clients', campaign.clientId);
     const clientSnap = await getDoc(clientDocRef);
+    
     if (!clientSnap.exists()) {
-      throw new Error(`Owner client "${campaign.clientId}" not found for campaign.`);
+      console.error(`Owner client "${campaign.clientId}" not found for campaign.`);
+      return null; // Don't crash, just return null so UI handles it gracefully
     }
+    
     const client = { ...clientSnap.data() as Client, id: clientSnap.id };
 
     return { campaign, client };
-  } catch (error) {
+  } catch (error: any) {
+    // Provide a clearer error if it's an index or permission issue
+    if (error.code === 'failed-precondition' && error.message.includes('index')) {
+        console.error('FIREBASE INDEX MISSING: You must create a Collection Group index for "campaigns" with field "id". Check the console link in your Firebase error logs.');
+    }
     handleFirestoreError(error, OperationType.GET, `campaignsGroup/whereId/${campaignId}`);
-    throw error;
+    
+    // Throwing error causes the UI to break, returning null triggers "Campaign Not Available" state which is expected UX
+    return null; 
   }
 }
 
+// ... rest of the file remains unchanged
 export async function getParticipants(clientId: string, campaignId: string): Promise<Participant[]> {
   if (isSandboxActive()) {
     return getSandboxParticipants(campaignId);
