@@ -229,8 +229,11 @@ service cloud.firestore {
 
         // Nested participants
         match /participants/{participantId} {
+          // Keep list restricted so malicious users can't download your entire participant database
           allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
-          allow get: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
+          
+          // ✅ Allow public 'get' so the app can check if a specific participant exists upon entry
+          allow get: if true;
           
           allow create: if isValidId(participantId) &&
             incoming().id == participantId &&
