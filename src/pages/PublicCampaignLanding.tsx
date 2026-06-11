@@ -18,7 +18,6 @@ import {
   User, 
   CheckCircle2, 
   Clock, 
-  Calendar, 
   Check, 
   AlertCircle, 
   LogOut,
@@ -293,8 +292,8 @@ export default function PublicCampaignLanding() {
                   <p className="text-xs text-[#737373]">Register to start submitting predictions and win points!</p>
                 </div>
 
-                {/* DYNAMIC Rewards Description Banner */}
-                {campaign.rewardsDescription && (
+                {/* FIXED DYNAMIC Rewards Description Banner */}
+                {campaign.rewardsDescription && campaign.rewardsDescription.trim().length > 0 && (
                   <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3">
                     <Gift className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                     <div>
@@ -439,8 +438,8 @@ export default function PublicCampaignLanding() {
                   </div>
                 </div>
 
-                {/* DYNAMIC Rewards Dashboard Banner */}
-                {campaign.rewardsDescription && (
+                {/* FIXED DYNAMIC Rewards Dashboard Banner */}
+                {campaign.rewardsDescription && campaign.rewardsDescription.trim().length > 0 && (
                   <div className="bg-linear-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 shadow-lg text-white flex items-center justify-between relative overflow-hidden">
                     <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
                       <Trophy className="h-24 w-24" />

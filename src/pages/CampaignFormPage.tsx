@@ -146,7 +146,7 @@ export default function CampaignFormPage() {
       clientId,
       name: name.trim(),
       description: description.trim(),
-      rewardsDescription: rewardsDescription.trim() || undefined, // Include in payload
+      rewardsDescription: rewardsDescription.trim(), // FIXED: Always send as a string so it doesn't get stripped by Firebase undefined checks
       eventType,
       gameType,
       startDate,
