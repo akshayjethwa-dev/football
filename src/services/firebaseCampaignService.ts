@@ -6,7 +6,6 @@ import {
   setDoc, 
   updateDoc, 
   deleteDoc, 
-  serverTimestamp,
   query,
   orderBy
 } from 'firebase/firestore';
@@ -83,15 +82,18 @@ export async function getCampaignById(clientId: string, campaignId: string): Pro
 }
 
 export async function createCampaign(clientId: string, campaignData: Omit<Campaign, 'createdAt' | 'updatedAt'>): Promise<void> {
+  const timestamp = new Date().toISOString();
+  
   if (isSandboxActive()) {
     const freshCampaign: Campaign = {
       ...campaignData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: timestamp,
+      updatedAt: timestamp
     };
     createSandboxCampaign(clientId, freshCampaign);
     return;
   }
+  
   const docPath = `${getCampaignsCollectionPath(clientId)}/${campaignData.id}`;
   try {
     const docRef = doc(db, getCampaignsCollectionPath(clientId), campaignData.id);
@@ -99,11 +101,26 @@ export async function createCampaign(clientId: string, campaignData: Omit<Campai
     // Deeply clean the payload of any undefined values
     const cleanedData = removeUndefinedFields(campaignData);
 
+    // Filter fields to strictly match what firestore.rules allows in `hasOnly`
+    const allowedFields = [
+      'id', 'clientId', 'name', 'description', 'eventType', 'gameType', 
+      'startDate', 'endDate', 'status', 'config', 'metadata'
+    ];
+    
+    const safeData: any = {};
+    allowedFields.forEach(field => {
+      if (cleanedData[field] !== undefined) {
+        safeData[field] = cleanedData[field];
+      }
+    });
+
     await setDoc(docRef, {
-      ...cleanedData,
+      config: {}, // Fallback to ensure hasAll(['config']) passes
+      status: 'draft', // Fallback to ensure hasAll(['status']) passes
+      ...safeData,
       clientId, // keep consistency
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: timestamp, // Match the rules supporting ISO strings
+      updatedAt: timestamp,
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, docPath);
@@ -116,10 +133,13 @@ export async function updateCampaign(
   campaignId: string, 
   campaignUpdates: Partial<Omit<Campaign, 'id' | 'clientId' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> {
+  const timestamp = new Date().toISOString();
+  
   if (isSandboxActive()) {
     updateSandboxCampaign(clientId, campaignId, campaignUpdates);
     return;
   }
+  
   const docPath = `${getCampaignsCollectionPath(clientId)}/${campaignId}`;
   try {
     const docRef = doc(db, getCampaignsCollectionPath(clientId), campaignId);
@@ -127,9 +147,22 @@ export async function updateCampaign(
     // Deeply clean the updates payload of any undefined values
     const cleanedUpdates = removeUndefinedFields(campaignUpdates);
 
+    // Filter fields to strictly match what firestore.rules allows
+    const allowedFields = [
+      'name', 'description', 'eventType', 'gameType', 
+      'startDate', 'endDate', 'status', 'config', 'metadata'
+    ];
+
+    const safeUpdates: any = {};
+    allowedFields.forEach(field => {
+      if (cleanedUpdates[field] !== undefined) {
+        safeUpdates[field] = cleanedUpdates[field];
+      }
+    });
+
     await updateDoc(docRef, {
-      ...cleanedUpdates,
-      updatedAt: serverTimestamp(),
+      ...safeUpdates,
+      updatedAt: timestamp,
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, docPath);
