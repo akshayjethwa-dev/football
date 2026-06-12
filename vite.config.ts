@@ -1,3 +1,4 @@
+// vite.config.ts
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -16,7 +17,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          ui: ['lucide-react', 'motion'], // Note: Assuming framer-motion or similar is mapped here
+          ui: ['lucide-react', 'motion'], 
         },
       },
     },
@@ -24,5 +25,13 @@ export default defineConfig({
   server: {
     port: 5173,
     hmr: true,
+    // Add proxy configuration to route API requests to the Express server
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000', // The port where server.ts runs
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
