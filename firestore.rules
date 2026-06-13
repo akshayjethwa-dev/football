@@ -70,7 +70,6 @@ service cloud.firestore {
     }
 
     function isValidCampaign(campaign) {
-      // FIXED: Moved description, startDate, endDate to optional fields and replaced brittle size() check with hasOnly
       return campaign.keys().hasAll(['id', 'clientId', 'name', 'eventType', 'gameType', 'status', 'config', 'createdAt', 'updatedAt']) &&
         campaign.keys().hasOnly(['id', 'clientId', 'name', 'description', 'rewardsDescription', 'eventType', 'gameType', 'startDate', 'endDate', 'status', 'config', 'createdAt', 'updatedAt', 'metadata']) &&
         campaign.id is string && campaign.id.size() <= 128 &&
@@ -95,7 +94,6 @@ service cloud.firestore {
     }
 
     function isValidEvent(event) {
-      // FIXED: Using hasOnly instead of brittle size() constraints
       return event.keys().hasAll(['id', 'campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt']) &&
         event.keys().hasOnly(['id', 'campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt', 'correctAnswer', 'scoringConfig']) &&
         event.id is string && event.id.size() <= 128 &&
@@ -110,7 +108,6 @@ service cloud.firestore {
     }
 
     function isValidParticipant(p) {
-      // FIXED: Using hasOnly instead of brittle size() constraints
       return p.keys().hasAll(['id', 'campaignId', 'clientId', 'name', 'phone', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
         p.keys().hasOnly(['id', 'campaignId', 'clientId', 'name', 'phone', 'email', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
         p.id is string && p.id.size() <= 128 &&
@@ -147,24 +144,46 @@ service cloud.firestore {
         c.metadata is map;
     }
 
-    // 2. Client Collection Rules
-    match /clients/{clientId} {
-      allow read, write: if false; // fallback
+    // 2. Collection Group Query For Campaigns (Must be at the root)
+    match /{path=**}/campaigns/{campaignId} {
+      allow get, list: if true;
+    }
 
+    // 3. User Profiles Collection Rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow list: if isSignedIn() && isSuperAdmin();
+
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin()) &&
+        isValidId(userId) &&
+        incoming().id == userId &&
+        isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() && 
+        (isSuperAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().clientId == existing().clientId)) &&
+        isValidUserProfile(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().createdAt == existing().createdAt;
+
+      allow delete: if isSignedIn() && isSuperAdmin();
+    }
+
+    // 4. Client Collection Rules
+    match /clients/{clientId} {
+      // NOTE: Removed redundant `allow read, write: if false;` to prevent evaluation overrides
       allow get: if true; // Public can retrieve client for campaign branding
       allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
       
-      // FIXED: Removed strict `incoming().createdAt == request.time` everywhere to support ISO timestamp strings
       allow create: if isSignedIn() && isSuperAdmin() &&
         isValidId(clientId) && 
         incoming().id == clientId && 
         isValidClient(incoming());
-        
+
       allow update: if isSignedIn() && isSuperAdmin() &&
         isValidClient(incoming()) &&
         incoming().id == existing().id &&
         incoming().createdAt == existing().createdAt;
-        
+
       allow delete: if isSignedIn() && isSuperAdmin();
 
       // Nested campaigns
@@ -177,13 +196,13 @@ service cloud.firestore {
           incoming().id == campaignId &&
           incoming().clientId == clientId &&
           isValidCampaign(incoming());
-          
+
         allow update: if isSignedIn() && isSuperAdmin() &&
           isValidCampaign(incoming()) &&
           incoming().id == existing().id &&
           incoming().clientId == existing().clientId &&
           incoming().createdAt == existing().createdAt;
-          
+
         allow delete: if isSignedIn() && isSuperAdmin();
 
         // Nested activities or events
@@ -195,13 +214,13 @@ service cloud.firestore {
             incoming().id == eventId &&
             incoming().campaignId == campaignId &&
             isValidEvent(incoming());
-            
+
           allow update: if isSignedIn() && isSuperAdmin() &&
             isValidEvent(incoming()) &&
             incoming().id == existing().id &&
             incoming().campaignId == existing().campaignId &&
             incoming().createdAt == existing().createdAt;
-            
+
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
@@ -216,24 +235,23 @@ service cloud.firestore {
             incoming().campaignId == campaignId &&
             incoming().clientId == clientId &&
             isValidCoupon(incoming());
-            
+
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidCoupon(incoming()) &&
             incoming().id == existing().id &&
             incoming().campaignId == existing().campaignId &&
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt;
-            
+
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
         // Nested participants
         match /participants/{participantId} {
-          // Keep list restricted so malicious users can't download your entire participant database
-          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
-          
           // ✅ Allow public 'get' so the app can check if a specific participant exists upon entry
           allow get: if true;
+          // Keep list restricted so malicious users can't download your entire participant database
+          allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
           
           allow create: if isValidId(participantId) &&
             incoming().id == participantId &&
@@ -241,19 +259,20 @@ service cloud.firestore {
             incoming().clientId == clientId &&
             isValidParticipant(incoming()) &&
             incoming().totalPoints == 0;
-            
+
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidParticipant(incoming()) &&
             incoming().id == existing().id &&
             incoming().campaignId == existing().campaignId &&
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt;
-            
+
           allow delete: if isSignedIn() && isSuperAdmin();
 
           // Nested responses of a participant
           match /responses/{responseId} {
-            allow get, list: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) || true;
+            // Simplified the evaluation to prevent Firebase short-circuit errors
+            allow get, list: if true;
 
             allow create: if isValidId(responseId) &&
               incoming().id == responseId &&
@@ -261,7 +280,7 @@ service cloud.firestore {
               incoming().campaignId == campaignId &&
               isValidResponse(incoming()) &&
               incoming().pointsAwarded == 0;
-              
+
             allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
               isValidResponse(incoming()) &&
               incoming().id == existing().id &&
@@ -273,30 +292,6 @@ service cloud.firestore {
           }
         }
       }
-    }
-
-    // 4. Collection Group Query For Campaigns
-    match /{path=**}/campaigns/{campaignId} {
-      allow get, list: if true;
-    }
-
-    // 3. User Profiles Collection Rules
-    match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow list: if isSignedIn() && isSuperAdmin();
-
-      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin()) &&
-        isValidId(userId) &&
-        incoming().id == userId &&
-        isValidUserProfile(incoming());
-        
-      allow update: if isSignedIn() && 
-        (isSuperAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().clientId == existing().clientId)) &&
-        isValidUserProfile(incoming()) &&
-        incoming().id == existing().id &&
-        incoming().createdAt == existing().createdAt;
-        
-      allow delete: if isSignedIn() && isSuperAdmin();
     }
   }
 }
