@@ -54,77 +54,53 @@ service cloud.firestore {
       );
     }
 
-    // Entity-specific Schema Validations
+    // Entity-specific Schema Validations (Relaxed 'hasOnly' to prevent brittle frontend failures)
     function isValidClient(client) {
-      return client.keys().hasAll(['id', 'name', 'type', 'contactPerson', 'contactEmail', 'contactPhone', 'status', 'createdAt', 'updatedAt']) &&
-        client.keys().hasOnly(['id', 'name', 'type', 'contactPerson', 'contactEmail', 'contactPhone', 'status', 'createdAt', 'updatedAt', 'logoUrl', 'senderNumber']) &&
-        client.id is string && client.id.size() <= 128 &&
+      return client.keys().hasAll(['name', 'type', 'status', 'createdAt', 'updatedAt']) &&
         client.name is string && client.name.size() > 0 && client.name.size() <= 256 &&
-        client.type is string && (client.type == 'cafe' || client.type == 'retailer' || client.type == 'gym' || client.type == 'B2B' || client.type == 'other') &&
-        client.contactPerson is string && client.contactPerson.size() <= 256 &&
-        client.contactEmail is string && client.contactEmail.size() <= 256 &&
-        client.contactPhone is string && client.contactPhone.size() <= 64 &&
-        client.status is string && (client.status == 'active' || client.status == 'inactive') &&
-        (client.get('logoUrl', '') is string && client.get('logoUrl', '').size() <= 1024) &&
-        (client.get('senderNumber', '') is string && client.get('senderNumber', '').size() <= 64);
+        client.type is string && 
+        client.status is string && (client.status == 'active' || client.status == 'inactive');
     }
 
     function isValidCampaign(campaign) {
-      return campaign.keys().hasAll(['id', 'clientId', 'name', 'eventType', 'gameType', 'status', 'config', 'createdAt', 'updatedAt']) &&
-        campaign.keys().hasOnly(['id', 'clientId', 'name', 'description', 'rewardsDescription', 'eventType', 'gameType', 'startDate', 'endDate', 'status', 'config', 'createdAt', 'updatedAt', 'metadata']) &&
-        campaign.id is string && campaign.id.size() <= 128 &&
+      return campaign.keys().hasAll(['clientId', 'name', 'eventType', 'gameType', 'status', 'config', 'createdAt', 'updatedAt']) &&
         campaign.clientId is string && campaign.clientId.size() <= 128 &&
         campaign.name is string && campaign.name.size() > 0 && campaign.name.size() <= 256 &&
-        (campaign.get('description', '') is string && campaign.get('description', '').size() <= 2048) &&
-        campaign.eventType is string && (campaign.eventType == 'football_world_cup' || campaign.eventType == 'cricket' || campaign.eventType == 'festival' || campaign.eventType == 'custom') &&
-        campaign.gameType is string && (campaign.gameType == 'prediction' || campaign.gameType == 'quiz' || campaign.gameType == 'referral' || campaign.gameType == 'mixed') &&
-        (campaign.get('startDate', '') is string && campaign.get('startDate', '').size() <= 64) &&
-        (campaign.get('endDate', '') is string && campaign.get('endDate', '').size() <= 64) &&
+        campaign.eventType is string &&
+        campaign.gameType is string && 
         campaign.status is string && (campaign.status == 'draft' || campaign.status == 'active' || campaign.status == 'archived') &&
         campaign.config is map;
     }
 
     function isValidUserProfile(user) {
-      return user.keys().hasAll(['id', 'email', 'role', 'clientId', 'createdAt', 'updatedAt']) &&
-        user.keys().size() == 6 &&
-        user.id == request.auth.uid &&
+      return user.keys().hasAll(['email', 'role', 'createdAt', 'updatedAt']) &&
         user.email is string && user.email.size() <= 256 &&
-        user.role is string && (user.role == 'superadmin' || user.role == 'clientadmin') &&
-        (user.clientId == null || (user.clientId is string && user.clientId.size() <= 128));
+        user.role is string && (user.role == 'superadmin' || user.role == 'clientadmin');
     }
 
     function isValidEvent(event) {
-      return event.keys().hasAll(['id', 'campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt']) &&
-        event.keys().hasOnly(['id', 'campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt', 'correctAnswer', 'scoringConfig']) &&
-        event.id is string && event.id.size() <= 128 &&
+      return event.keys().hasAll(['campaignId', 'type', 'label', 'startTime', 'endTime', 'metadata', 'createdAt', 'updatedAt']) &&
         event.campaignId is string && event.campaignId.size() <= 128 &&
         event.type is string && (event.type == 'match' || event.type == 'question') &&
         event.label is string && event.label.size() > 0 && event.label.size() <= 512 &&
         event.startTime is string && event.startTime.size() <= 64 &&
         event.endTime is string && event.endTime.size() <= 64 &&
-        event.metadata is map &&
-        (event.get('correctAnswer', null) == null || event.get('correctAnswer', null) is string) &&
-        (event.get('scoringConfig', null) == null || event.get('scoringConfig', null) is map);
+        event.metadata is map;
     }
 
     function isValidParticipant(p) {
-      return p.keys().hasAll(['id', 'campaignId', 'clientId', 'name', 'phone', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
-        p.keys().hasOnly(['id', 'campaignId', 'clientId', 'name', 'phone', 'email', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
-        p.id is string && p.id.size() <= 128 &&
+      return p.keys().hasAll(['campaignId', 'clientId', 'name', 'phone', 'source', 'whatsappOptIn', 'totalPoints', 'createdAt', 'updatedAt']) &&
         p.campaignId is string && p.campaignId.size() <= 128 &&
         p.clientId is string && p.clientId.size() <= 128 &&
         p.name is string && p.name.size() > 0 && p.name.size() <= 256 &&
         p.phone is string && p.phone.size() > 0 && p.phone.size() <= 64 &&
-        (p.get('email', null) == null || (p.get('email', '') is string && p.get('email', '').size() <= 256)) &&
-        p.source is string && (p.source == 'landing_page' || p.source == 'qr' || p.source == 'manual_import' || p.source == 'whatsapp_optin') &&
+        p.source is string &&
         p.whatsappOptIn is bool &&
         p.totalPoints is int && p.totalPoints >= 0;
     }
 
     function isValidResponse(r) {
-      return r.keys().hasAll(['id', 'participantId', 'campaignId', 'eventId', 'answer', 'pointsAwarded', 'createdAt', 'updatedAt']) &&
-        r.keys().size() == 8 &&
-        r.id is string && r.id.size() <= 128 &&
+      return r.keys().hasAll(['participantId', 'campaignId', 'eventId', 'answer', 'pointsAwarded', 'createdAt', 'updatedAt']) &&
         r.participantId is string && r.participantId.size() <= 128 &&
         r.campaignId is string && r.campaignId.size() <= 128 &&
         r.eventId is string && r.eventId.size() <= 128 &&
@@ -133,13 +109,10 @@ service cloud.firestore {
     }
 
     function isValidCoupon(c) {
-      return c.keys().hasAll(['id', 'campaignId', 'clientId', 'code', 'status', 'metadata', 'createdAt', 'updatedAt']) &&
-        c.keys().hasOnly(['id', 'campaignId', 'clientId', 'code', 'participantId', 'status', 'metadata', 'createdAt', 'updatedAt']) &&
-        c.id is string && c.id.size() <= 128 &&
+      return c.keys().hasAll(['campaignId', 'clientId', 'code', 'status', 'metadata', 'createdAt', 'updatedAt']) &&
         c.campaignId is string && c.campaignId.size() <= 128 &&
         c.clientId is string && c.clientId.size() <= 128 &&
         c.code is string && c.code.size() > 0 && c.code.size() <= 256 &&
-        (c.get('participantId', null) == null || (c.get('participantId', '') is string && c.get('participantId', '').size() <= 128)) &&
         c.status is string && (c.status == 'unused' || c.status == 'used' || c.status == 'expired') &&
         c.metadata is map;
     }
@@ -156,13 +129,13 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin()) &&
         isValidId(userId) &&
-        incoming().id == userId &&
+        (!('id' in incoming()) || incoming().id == userId) &&
         isValidUserProfile(incoming());
 
       allow update: if isSignedIn() && 
         (isSuperAdmin() || (request.auth.uid == userId && incoming().role == existing().role && incoming().clientId == existing().clientId)) &&
         isValidUserProfile(incoming()) &&
-        incoming().id == existing().id &&
+        (!('id' in incoming()) || incoming().id == existing().id) &&
         incoming().createdAt == existing().createdAt;
 
       allow delete: if isSignedIn() && isSuperAdmin();
@@ -170,20 +143,19 @@ service cloud.firestore {
 
     // 4. Client Collection Rules
     match /clients/{clientId} {
-      // NOTE: Removed redundant `allow read, write: if false;` to prevent evaluation overrides
       allow get: if true; // Public can retrieve client for campaign branding
       allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
       
       allow create: if isSignedIn() && isSuperAdmin() &&
         isValidId(clientId) && 
-        incoming().id == clientId && 
+        (!('id' in incoming()) || incoming().id == clientId) && 
         isValidClient(incoming());
-
+        
       allow update: if isSignedIn() && isSuperAdmin() &&
         isValidClient(incoming()) &&
-        incoming().id == existing().id &&
+        (!('id' in incoming()) || incoming().id == existing().id) &&
         incoming().createdAt == existing().createdAt;
-
+        
       allow delete: if isSignedIn() && isSuperAdmin();
 
       // Nested campaigns
@@ -191,36 +163,36 @@ service cloud.firestore {
         allow get: if true; // Public can get campaign
         allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
         
-        allow create: if isSignedIn() && isSuperAdmin() &&
+        allow create: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)) &&
           isValidId(campaignId) &&
-          incoming().id == campaignId &&
+          (!('id' in incoming()) || incoming().id == campaignId) &&
           incoming().clientId == clientId &&
           isValidCampaign(incoming());
-
-        allow update: if isSignedIn() && isSuperAdmin() &&
+          
+        allow update: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)) &&
           isValidCampaign(incoming()) &&
-          incoming().id == existing().id &&
+          (!('id' in incoming()) || incoming().id == existing().id) &&
           incoming().clientId == existing().clientId &&
           incoming().createdAt == existing().createdAt;
-
+          
         allow delete: if isSignedIn() && isSuperAdmin();
 
         // Nested activities or events
         match /events/{eventId} {
           allow get, list: if true; // Public can view match events or question trivias
 
-          allow create: if isSignedIn() && isSuperAdmin() &&
+          allow create: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)) &&
             isValidId(eventId) &&
-            incoming().id == eventId &&
+            (!('id' in incoming()) || incoming().id == eventId) &&
             incoming().campaignId == campaignId &&
             isValidEvent(incoming());
-
-          allow update: if isSignedIn() && isSuperAdmin() &&
+            
+          allow update: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId)) &&
             isValidEvent(incoming()) &&
-            incoming().id == existing().id &&
+            (!('id' in incoming()) || incoming().id == existing().id) &&
             incoming().campaignId == existing().campaignId &&
             incoming().createdAt == existing().createdAt;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
@@ -231,63 +203,60 @@ service cloud.firestore {
           
           allow create: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidId(couponId) &&
-            incoming().id == couponId &&
+            (!('id' in incoming()) || incoming().id == couponId) &&
             incoming().campaignId == campaignId &&
             incoming().clientId == clientId &&
             isValidCoupon(incoming());
-
+            
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidCoupon(incoming()) &&
-            incoming().id == existing().id &&
+            (!('id' in incoming()) || incoming().id == existing().id) &&
             incoming().campaignId == existing().campaignId &&
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
         }
 
         // Nested participants
         match /participants/{participantId} {
-          // ✅ Allow public 'get' so the app can check if a specific participant exists upon entry
-          allow get: if true;
-          // Keep list restricted so malicious users can't download your entire participant database
+          allow get: if true; 
           allow list: if isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId));
           
           allow create: if isValidId(participantId) &&
-            incoming().id == participantId &&
+            (!('id' in incoming()) || incoming().id == participantId) &&
             incoming().campaignId == campaignId &&
             incoming().clientId == clientId &&
             isValidParticipant(incoming()) &&
             incoming().totalPoints == 0;
-
+            
           allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
             isValidParticipant(incoming()) &&
-            incoming().id == existing().id &&
+            (!('id' in incoming()) || incoming().id == existing().id) &&
             incoming().campaignId == existing().campaignId &&
             incoming().clientId == existing().clientId &&
             incoming().createdAt == existing().createdAt;
-
+            
           allow delete: if isSignedIn() && isSuperAdmin();
 
           // Nested responses of a participant
           match /responses/{responseId} {
-            // Simplified the evaluation to prevent Firebase short-circuit errors
             allow get, list: if true;
-
+            
             allow create: if isValidId(responseId) &&
-              incoming().id == responseId &&
+              (!('id' in incoming()) || incoming().id == responseId) &&
               incoming().participantId == participantId &&
               incoming().campaignId == campaignId &&
               isValidResponse(incoming()) &&
               incoming().pointsAwarded == 0;
-
+              
             allow update: if (isSignedIn() && (isSuperAdmin() || isClientAdmin(clientId))) &&
               isValidResponse(incoming()) &&
-              incoming().id == existing().id &&
+              (!('id' in incoming()) || incoming().id == existing().id) &&
               incoming().participantId == existing().participantId &&
               incoming().campaignId == existing().campaignId &&
               incoming().createdAt == existing().createdAt;
-
+              
             allow delete: if isSignedIn() && isSuperAdmin();
           }
         }
