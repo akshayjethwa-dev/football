@@ -493,6 +493,18 @@ export default function PublicCampaignLanding() {
                               </div>
                             </div>
 
+                            {/* Added Event Image Rendering */}
+                            {evt.metadata.imageUrl && (
+                              <div className="w-full h-36 sm:h-48 rounded-xl overflow-hidden bg-neutral-100 shrink-0">
+                                <img 
+                                  src={evt.metadata.imageUrl} 
+                                  alt={evt.label}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            )}
+
                             <div className="text-sm font-bold text-neutral-900 font-sans tracking-tight leading-snug">
                               {evt.label}
                             </div>
@@ -637,18 +649,31 @@ export default function PublicCampaignLanding() {
                             key={evt.id} 
                             className="bg-white border border-neutral-150 rounded-2xl p-4 flex items-center justify-between"
                           >
-                            <div className="space-y-1 pr-3 max-w-[70%]">
-                              <h4 className="text-xs font-semibold text-neutral-400 truncate tracking-wide">
-                                {evt.label}
-                              </h4>
-                              <div className="flex items-center space-x-1">
-                                <span className="font-bold text-xs text-neutral-800">
-                                  Choice: {userResp?.answer}
-                                </span>
+                            <div className="flex items-center flex-1 pr-3 overflow-hidden">
+                              {/* Thumbnail for saved predictions */}
+                              {evt.metadata.imageUrl && (
+                                <div className="shrink-0 mr-3 h-10 w-10 rounded-lg bg-neutral-100 overflow-hidden">
+                                  <img 
+                                    src={evt.metadata.imageUrl} 
+                                    alt="" 
+                                    className="w-full h-full object-cover" 
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
+                              )}
+                              <div className="space-y-1 min-w-0">
+                                <h4 className="text-xs font-semibold text-neutral-400 truncate tracking-wide">
+                                  {evt.label}
+                                </h4>
+                                <div className="flex items-center space-x-1">
+                                  <span className="font-bold text-xs text-neutral-800 truncate">
+                                    Choice: {userResp?.answer}
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
-                            <div className="shrink-0">
+                            <div className="shrink-0 pl-2">
                               {isResolved ? (
                                 <div className={`flex flex-col items-end ${isWinner ? 'text-emerald-600' : 'text-neutral-400'}`}>
                                   <span className="font-mono font-black text-xs">
@@ -659,7 +684,7 @@ export default function PublicCampaignLanding() {
                                   </span>
                                 </div>
                               ) : (
-                                <span className="px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-100 text-[10px] font-bold rounded-full tracking-wide">
+                                <span className="px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-100 text-[10px] font-bold rounded-full tracking-wide whitespace-nowrap">
                                   Prediction Locked
                                 </span>
                               )}
@@ -685,14 +710,27 @@ export default function PublicCampaignLanding() {
                           key={evt.id} 
                           className="bg-neutral-100 rounded-2xl p-4 flex items-center justify-between border border-neutral-200"
                         >
-                          <div className="space-y-0.5 max-w-[80%] pr-3">
-                            <h4 className="text-xs font-bold text-neutral-500 tracking-tight">
-                              {evt.label}
-                            </h4>
-                            <p className="text-[10px] text-neutral-400">Locked without prediction</p>
+                          <div className="flex items-center flex-1 pr-3 overflow-hidden">
+                            {/* Grayscale thumbnail for expired predictions */}
+                            {evt.metadata.imageUrl && (
+                              <div className="shrink-0 mr-3 h-10 w-10 rounded-lg bg-neutral-200 overflow-hidden opacity-60">
+                                <img 
+                                  src={evt.metadata.imageUrl} 
+                                  alt="" 
+                                  className="w-full h-full object-cover grayscale" 
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            )}
+                            <div className="space-y-0.5 min-w-0">
+                              <h4 className="text-xs font-bold text-neutral-500 tracking-tight truncate">
+                                {evt.label}
+                              </h4>
+                              <p className="text-[10px] text-neutral-400">Locked without prediction</p>
+                            </div>
                           </div>
                           
-                          <div className="text-right text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                          <div className="shrink-0 pl-2 text-right text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
                             Expired
                           </div>
                         </div>
